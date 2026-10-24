@@ -398,7 +398,7 @@ function model(m,f,P,z,cla,shh){
   const near=Math.min(Math.abs(x-sr[d]),Math.abs(x-ss[d]))<=90?1:(x<sr[d]||x>ss[d]?.6:.4);
   const sl=sw.some(w=>w.t==2&&x+30>=w.a&&x+30<=w.b)?2:sw.some(w=>w.t==1&&x+30>=w.a&&x+30<=w.b)?1:0;
   const o={x,h:th(x),ph:dv>.15?0:dv<-.15?1:2,wh:H.wave_height[i]*3.281,wp:H.wave_period[i],tp:H.sea_surface_temperature[i]*1.8+32+(z.tb||0)*Math.exp(-Math.max(0,i-nowH)/96),tp0:H.sea_surface_temperature[i]*1.8+32,cl:cla&&cla[i]!=null?cla[i]:null,ws:W.wind_speed_10m[i],wd:W.wind_direction_10m[i],near,mo:new Date(x*6e4).getUTCMonth(),wdr:H.wave_direction?H.wave_direction[i]:null,gu:W.wind_gusts_10m?W.wind_gusts_10m[i]:null,tf:W.temperature_2m?W.temperature_2m[i]:null,pr:W.pressure_msl&&W.pressure_msl[i]!=null?W.pressure_msl[i]*.02953:null,pp:W.precipitation_probability?W.precipitation_probability[i]:null,cc:W.cloud_cover?W.cloud_cover[i]:null,wk:W.weather_code?W.weather_code[i]:null,sl,mb:4*Math.abs(Math.cos(2*Math.PI*moonAge(x)))+(sl==2?4:sl==1?2:0)};
-  o.dk=!(x>=sr[d]-30&&x<=ss[d]+30);o.sf=surfScore(o,sr[d],ss[d]);o.bc=beachScore(o,sr[d],ss[d]);
+  o.dk=!(x+30>=sr[d]-30&&x+30<=ss[d]+30);o.er=!o.dk&&!(x>=sr[d]+30&&x<=ss[d]-30);o.sf=surfScore(o,sr[d],ss[d]);o.bc=beachScore(o,sr[d],ss[d]);
   o.dh=T.filter(e=>e.k=='H').reduce((a,e)=>Math.min(a,Math.abs(x+30-e.m)),1e9);o.dl=T.filter(e=>e.k=='L').reduce((a,e)=>Math.min(a,Math.abs(x+30-e.m)),1e9);if(o.dh>=1e9)o.dh=o.dl=null;
   o.rp=shh?shh.rp[i]:null;o.ro=shh?shh.ro[i]:null;Object.assign(o,shellScore(o,sr[d],ss[d]));o.sp0=SP.map(s=>score(s,o)*clf(s,o)*(s.n=='Pompano'?pomF(o):1));applyGate(o);
   hrs.push(o);
@@ -462,7 +462,7 @@ function shellScore(o,sr,ss){
   storm=o.rp==null?null:cl01(.7*cl01(o.rp/Math.max(.5,CFG.shSw))+.3*cl01((o.ro||0)/15)),
   wv=trap(o.wh,-1,0,3,Math.max(3.5,CFG.shWm)),wi=cl01(1-(o.ws-8)/14),H=hzHour(o);
  const f=(W)=>{let a=0,b=0;W.forEach(([v,w])=>{if(v!=null){a+=v*w;b+=w}});return b?a/b:0},
-  g=(W)=>{const t=tide==null?1:tide,v=100*f(W)*(.5+.5*t),dk=o.x>=sr+30&&o.x<=ss-30?1:.08,cap=H.storm==2?20:H.surf==2||H.rip==2?45:100,rn=o.pp!=null&&o.pp>=60?.85:1;return Math.round(Math.max(0,Math.min(100,Math.min(v,cap)*dk*rn)))};
+  g=(W)=>{const t=tide==null?1:tide,v=100*f(W)*(.5+.5*t),dk=o.dk?.08:1,cap=H.storm==2?20:H.surf==2||H.rip==2?45:100,rn=o.pp!=null&&o.pp>=60?.85:1;return Math.round(Math.max(0,Math.min(100,Math.min(v,cap)*dk*rn)))};
  const shs=g([[tide,.4],[storm,.22],[wv,.16],[wi,.12],[spr,.1]]),sht=g([[tide,.34],[storm,.36],[wv,.12],[wi,.06],[spr,.12]]);
  return{shs,sht,shg:Math.round(.55*shs+.45*sht)}}
 const shl=(s,o)=>o.dk?'Dark':s>=CFG.shGr?'Prime':s>=CFG.shGd?'Good':s>=CFG.shMe?'Fair':'Poor';
@@ -588,7 +588,7 @@ function tabSafe(D,d){const H=dayHaz(D,d),z=Z[zi],al=getAl(),col=l=>l==2?'var(--
 // ---- Surf quality ----
 function surfScore(o,sr,ss){const R=Math.PI/180,ons=o.ws*Math.max(0,Math.cos((o.wd-90)*R)),off=o.ws*Math.max(0,Math.cos((o.wd-270)*R)),
  sz=trap(o.wh,CFG.sfLo,CFG.sfI1,CFG.sfI2,CFG.sfHi),pe=trap(o.wp,4,8,14,22),wf=Math.max(.05,Math.min(1,1-(ons-4)/16))*(off>18?Math.max(.4,1-(off-18)/20):1)*(o.ws>=25?.5:1),ti=[1,.8,.75][o.ph],
- v=100*(.38*sz+.2*pe+.32*wf+.1*ti)*(.45+.55*Math.min(sz,wf)),dl=o.x>=sr-30&&o.x<=ss+30?1:.12;return Math.round(Math.max(0,Math.min(100,v*dl)))}
+ v=100*(.38*sz+.2*pe+.32*wf+.1*ti)*(.45+.55*Math.min(sz,wf)),dl=o.x+30>=sr-30&&o.x+30<=ss+30?1:.12;return Math.round(Math.max(0,Math.min(100,v*dl)))}
 const sfl=(s,o)=>o.dk?'Dark':o.wh<1?'Flat':s>=CFG.sfUp?'Good':s>=CFG.sfFair?'Fair':s>=CFG.sfPoor?'Poor':'Bad';
 const wtype=o=>{const R=Math.PI/180,on=Math.cos((o.wd-90)*R),of=Math.cos((o.wd-270)*R);return o.ws<5?'Light':of>.5?'Offshore':on>.5?'Onshore':'Cross'};
 function bestSf(h){let bi=0,bs=-1;for(let i=0;i+3<=h.length;i++){const s=(h[i].sf+h[i+1].sf+h[i+2].sf)/3;if(s>bs){bs=s;bi=i}}return{i:bi,s:bs}}
@@ -618,7 +618,7 @@ function beachScore(o,sr,ss){const tc=o.tf==null?null:trap(o.tf,CFG.taI1-11,CFG.
  cw=[[tc,.26],[wt,.14],[wv,.22],[wi,.18],[rn,.2]],sw=cw.reduce((a,c)=>c[0]==null?a:a+c[1],0),bs=cw.reduce((a,c)=>c[0]==null?a:a+c[0]*c[1],0)/sw,
  v=100*bs*(.55+.45*Math.min(tc==null?1:tc,wi,rn==null?1:rn,Math.max(wv,.35))),dl=o.x>=sr+30&&o.x<=ss-30?1:.08;
  return Math.round(Math.max(0,Math.min(100,Math.min(v,mx==2?25:mx==1?62:100)*dl)))}
-const bcl=(s,o)=>o.dk?'Dark':s>=CFG.bGr?'Great':s>=CFG.bGd?'Good':s>=CFG.bMe?'Meh':'Skip';
+const bcl=(s,o)=>o.dk?'Dark':o.er?'Low sun':s>=CFG.bGr?'Great':s>=CFG.bGd?'Good':s>=CFG.bMe?'Meh':'Skip';
 function bestBc(h){let bi=0,bs=-1;for(let i=0;i+3<=h.length;i++){const s=(h[i].bc+h[i+1].bc+h[i+2].bc)/3;if(s>bs){bs=s;bi=i}}return{i:bi,s:bs}}
 function beachWins(D){const out=[];for(let d=0;d<D.sol.length;d++){const h=dayH(D,d);if(h.length<24)continue;let a=null;for(let i=0;i<=24;i++){const ok=i<24&&h[i].bc>=CFG.bGd;if(ok&&a==null)a=i;if(!ok&&a!=null){const sg=h.slice(a,i),pk=sg.reduce((m,o)=>o.bc>m.bc?o:m,sg[0]);out.push({d,x:h[a].x,x2:h[i-1].x+60,pk});a=null}}}return out}
 function tabBeach(D,d){const h=dayH(D,d),x0=h[0].x,b=bestBc(h),p=h[b.i+1],W=beachWins(D),Hz=hzHour(p),dh=dayHaz(D,d);
